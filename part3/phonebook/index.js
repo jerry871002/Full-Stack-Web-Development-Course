@@ -1,5 +1,6 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 
 const app = express()
 
@@ -26,7 +27,11 @@ let persons = [
   }
 ]
 
+// middlewares
+app.use(cors())
 app.use(express.json())
+app.use(express.static('build'))
+
 morgan.token('body', (request, response) => JSON.stringify(request.body))
 app.use(morgan(
   ':method :url :status :res[content-length] - :response-time ms :body'
@@ -80,12 +85,12 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete('/api/persons/:id', (request, response) => {
   const id = Number(request.params.id)
-  notes = notes.filter(note => note.id !== id)
+  persons = persons.filter(note => note.id !== id)
 
   response.status(204).end()
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || "8080"
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
