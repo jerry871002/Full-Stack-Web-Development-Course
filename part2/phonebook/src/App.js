@@ -80,6 +80,14 @@ const App = () => {
           setNotification(null)
         }, 5000)
       })
+      .catch(error => {
+        console.log(error.response.data.error)
+        setNotification(error.response.data.error)
+        setNotificationType('error')
+        setTimeout(() => {
+          setNotification(null)
+        }, 5000)
+      })
   }
 
   const deletePerson = id => {
