@@ -210,6 +210,21 @@ describe('post to /api/blogs', () => {
 
     expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
   }, 100000)
+
+  // exercise 4.23
+  test('adding a blog fails if a token is not provided', async () => {
+    const newBlog = {
+      title: 'Full Stack Web Development',
+      author: 'Jerry',
+      url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
+      likes: 100,
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(401)
+  })
 })
 
 describe('blog deletion', () => {
