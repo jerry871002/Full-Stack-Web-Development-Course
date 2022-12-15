@@ -1,6 +1,9 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
+const bcrypt = require('bcrypt')
+
 const app = require('../app')
+const User = require('../models/user')
 const Blog = require('../models/blog')
 const helper = require('./test_helper')
 
@@ -37,93 +40,107 @@ describe('when there is initially some blogs saved', () => {
   }, 100000)
 })
 
-// exercise 4.9
-test('the unique identifier property of the blog posts is named id', async () => {
-  const response = await api.get('/api/blogs')
+describe('post to /api/blogs', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
 
-  for (const blog of response.body) {
-    expect(blog.id).toBeDefined()
-  }
-}, 100000)
+    const passwordHash = await bcrypt.hash('sekret', 10)
+    const user = new User({ username: 'root', passwordHash })
 
-// exercise 4.10
-test('a valid blog can be added', async () => {
-  const newBlog = {
-    title: 'Full Stack Web Development',
-    author: 'Jerry',
-    url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
-    likes: 100,
-  }
+    await user.save()
+  })
 
-  await api
-    .post('/api/blogs')
-    .send(newBlog)
-    .expect(201)
-    .expect('Content-Type', /application\/json/)
+  // exercise 4.10
+  test('a valid blog can be added', async () => {
+    const defaultUser = await User.findOne({ username: 'root' })
 
-  // the total number of blogs in the system is increased by one
-  const blogsAtEnd = await helper.blogsInDb()
-  expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length + 1)
+    const newBlog = {
+      title: 'Full Stack Web Development',
+      author: 'Jerry',
+      url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
+      likes: 100,
+      userId: defaultUser._id.toString(),
+    }
 
-  // the content of the blog post is saved correctly to the database
-  const contents = blogsAtEnd.map(r => r.title)
-  expect(contents).toContain(newBlog.title)
-}, 100000)
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
 
-// exercise 4.11
-test('the default value of likes property is 0', async () => {
-  const newBlog = {
-    title: 'Full Stack Web Development',
-    author: 'Jerry',
-    url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
-  }
+    // the total number of blogs in the system is increased by one
+    const blogsAtEnd = await helper.blogsInDb()
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length + 1)
 
-  const response = await api
-    .post('/api/blogs')
-    .send(newBlog)
-    .expect(201)
-    .expect('Content-Type', /application\/json/)
+    // the content of the blog post is saved correctly to the database
+    const contents = blogsAtEnd.map(r => r.title)
+    expect(contents).toContain(newBlog.title)
+  }, 100000)
 
-  const newBlogId = response.body.id
+  // exercise 4.11
+  test('the default value of likes property is 0', async () => {
+    const defaultUser = await User.findOne({ username: 'root' })
 
-  const blogsAtEnd = await helper.blogsInDb()
-  const blog = blogsAtEnd.find(blog => blog.id === newBlogId)
-  expect(blog.likes).toEqual(0)
-}, 100000)
+    const newBlog = {
+      title: 'Full Stack Web Development',
+      author: 'Jerry',
+      url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
+      userId: defaultUser._id.toString(),
+    }
 
-// exercise 4.12
-test('blog without title is not added', async () => {
-  const newBlog = {
-    author: 'Jerry',
-    url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
-  }
+    const response = await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
 
-  await api
-    .post('/api/blogs')
-    .send(newBlog)
-    .expect(400)
+    const newBlogId = response.body.id
 
-  const blogsAtEnd = await helper.blogsInDb()
+    const blogsAtEnd = await helper.blogsInDb()
+    const blog = blogsAtEnd.find(blog => blog.id === newBlogId)
+    expect(blog.likes).toEqual(0)
+  }, 100000)
 
-  expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
-}, 100000)
+  // exercise 4.12
+  test('blog without title is not added', async () => {
+    const defaultUser = await User.findOne({ username: 'root' })
 
-// exercise 4.12
-test('blog without url is not added', async () => {
-  const newBlog = {
-    title: 'Full Stack Web Development',
-    author: 'Jerry',
-  }
+    const newBlog = {
+      author: 'Jerry',
+      url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
+      userId: defaultUser._id.toString(),
+    }
 
-  await api
-    .post('/api/blogs')
-    .send(newBlog)
-    .expect(400)
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(400)
 
-  const blogsAtEnd = await helper.blogsInDb()
+    const blogsAtEnd = await helper.blogsInDb()
 
-  expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
-}, 100000)
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
+  }, 100000)
+
+  // exercise 4.12
+  test('blog without url is not added', async () => {
+    const defaultUser = await User.findOne({ username: 'root' })
+
+    const newBlog = {
+      title: 'Full Stack Web Development',
+      author: 'Jerry',
+      userId: defaultUser._id.toString(),
+    }
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .expect(400)
+
+    const blogsAtEnd = await helper.blogsInDb()
+
+    expect(blogsAtEnd).toHaveLength(helper.initialBlogs.length)
+  }, 100000)
+})
 
 test('a specific blog can be viewed', async () => {
   const blogsAtStart = await helper.blogsInDb()
@@ -138,6 +155,15 @@ test('a specific blog can be viewed', async () => {
   const processedBlogToView = JSON.parse(JSON.stringify(blogToView))
 
   expect(resultBlog.body).toEqual(processedBlogToView)
+}, 100000)
+
+// exercise 4.9
+test('the unique identifier property of the blog posts is named id', async () => {
+  const response = await api.get('/api/blogs')
+
+  for (const blog of response.body) {
+    expect(blog.id).toBeDefined()
+  }
 }, 100000)
 
 // exercise 4.13
@@ -180,6 +206,60 @@ test('a blog can be updated', async () => {
 
   expect(blog.likes).toEqual(blogToUpdate.likes + 1)
 }, 100000)
+
+describe('when there is initially one user in db', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('sekret', 10)
+    const user = new User({ username: 'root', passwordHash })
+
+    await user.save()
+  })
+
+  test('creation succeeds with a fresh username', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'mluukkai',
+      name: 'Matti Luukkainen',
+      password: 'salainen',
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toHaveLength(usersAtStart.length + 1)
+
+    const usernames = usersAtEnd.map(u => u.username)
+    expect(usernames).toContain(newUser.username)
+  })
+
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('username must be unique')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toEqual(usersAtStart)
+  })
+})
 
 afterAll(() => {
   mongoose.connection.close()
