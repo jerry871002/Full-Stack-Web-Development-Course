@@ -8,27 +8,34 @@ const api = supertest(app)
 
 beforeEach(async () => {
   await Blog.deleteMany({})
-  for (const blog of helper.initialBlogs) {
-    let blogObject = new Blog(blog)
-    await blogObject.save()
-  }
+  await Blog.insertMany(helper.initialBlogs)
 }, 100000)
 // long timeout ensures that our test won't fail due to the time it takes to run
 
-// exercise 4.8
-test('blogs are returned as json', async () => {
-  await api
-    .get('/api/blogs')
-    .expect(200)
-    .expect('Content-Type', /application\/json/)
-}, 100000)
+describe('when there is initially some blogs saved', () => {
+  // exercise 4.8
+  test('blogs are returned as json', async () => {
+    await api
+      .get('/api/blogs')
+      .expect(200)
+      .expect('Content-Type', /application\/json/)
+  }, 100000)
 
-// exercise 4.8
-test('all blogs are returned', async () => {
-  const response = await api.get('/api/blogs')
+  // exercise 4.8
+  test('all blogs are returned', async () => {
+    const response = await api.get('/api/blogs')
 
-  expect(response.body).toHaveLength(helper.initialBlogs.length)
-}, 100000)
+    expect(response.body).toHaveLength(helper.initialBlogs.length)
+  }, 100000)
+
+  test('a specific blog is within the returned blogs', async () => {
+    const response = await api.get('/api/blogs')
+    const contents = response.body.map(r => r.title)
+    expect(contents).toContain(
+      'Canonical string reduction'
+    )
+  }, 100000)
+})
 
 // exercise 4.9
 test('the unique identifier property of the blog posts is named id', async () => {
@@ -37,15 +44,6 @@ test('the unique identifier property of the blog posts is named id', async () =>
   for (const blog of response.body) {
     expect(blog.id).toBeDefined()
   }
-}, 100000)
-
-test('a specific blog is within the returned blogs', async () => {
-  const response = await api.get('/api/blogs')
-
-  const contents = response.body.map(r => r.title)
-  expect(contents).toContain(
-    'Canonical string reduction'
-  )
 }, 100000)
 
 // exercise 4.10
@@ -142,6 +140,7 @@ test('a specific blog can be viewed', async () => {
   expect(resultBlog.body).toEqual(processedBlogToView)
 }, 100000)
 
+// exercise 4.13
 test('a blog can be deleted', async () => {
   const blogsAtStart = await helper.blogsInDb()
   const blogToDelete = blogsAtStart[0]
@@ -159,6 +158,27 @@ test('a blog can be deleted', async () => {
   const contents = blogsAtEnd.map(r => r.title)
 
   expect(contents).not.toContain(blogsAtEnd.title)
+}, 100000)
+
+// exercise 4.14
+test('a blog can be updated', async () => {
+  const blogsAtStart = await helper.blogsInDb()
+  const blogToUpdate = blogsAtStart[0]
+
+  console.log(`Updating "${blogToUpdate.title}"`)
+
+  await api
+    .put(`/api/blogs/${blogToUpdate.id}`)
+    .send({
+      ...blogToUpdate,
+      likes: blogToUpdate.likes + 1,
+    })
+    .expect(200)
+
+  const blogsAtEnd = await helper.blogsInDb()
+  const blog = blogsAtEnd.find(blog => blog.id === blogToUpdate.id)
+
+  expect(blog.likes).toEqual(blogToUpdate.likes + 1)
 }, 100000)
 
 afterAll(() => {
