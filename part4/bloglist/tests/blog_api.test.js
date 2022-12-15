@@ -52,18 +52,24 @@ describe('post to /api/blogs', () => {
 
   // exercise 4.10
   test('a valid blog can be added', async () => {
-    const defaultUser = await User.findOne({ username: 'root' })
+    const loginResponse = await api
+      .post('/api/login')
+      .send({
+        username: 'root',
+        password: 'sekret',
+      })
+    const token = loginResponse.body.token
 
     const newBlog = {
       title: 'Full Stack Web Development',
       author: 'Jerry',
       url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
       likes: 100,
-      userId: defaultUser._id.toString(),
     }
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -79,17 +85,23 @@ describe('post to /api/blogs', () => {
 
   // exercise 4.11
   test('the default value of likes property is 0', async () => {
-    const defaultUser = await User.findOne({ username: 'root' })
+    const loginResponse = await api
+      .post('/api/login')
+      .send({
+        username: 'root',
+        password: 'sekret',
+      })
+    const token = loginResponse.body.token
 
     const newBlog = {
       title: 'Full Stack Web Development',
       author: 'Jerry',
       url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
-      userId: defaultUser._id.toString(),
     }
 
     const response = await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
       .send(newBlog)
       .expect(201)
       .expect('Content-Type', /application\/json/)
@@ -103,16 +115,22 @@ describe('post to /api/blogs', () => {
 
   // exercise 4.12
   test('blog without title is not added', async () => {
-    const defaultUser = await User.findOne({ username: 'root' })
+    const loginResponse = await api
+      .post('/api/login')
+      .send({
+        username: 'root',
+        password: 'sekret',
+      })
+    const token = loginResponse.body.token
 
     const newBlog = {
       author: 'Jerry',
       url: 'https://github.com/jerry871002/Full-Stack-Web-Development-Course',
-      userId: defaultUser._id.toString(),
     }
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
       .send(newBlog)
       .expect(400)
 
@@ -123,16 +141,22 @@ describe('post to /api/blogs', () => {
 
   // exercise 4.12
   test('blog without url is not added', async () => {
-    const defaultUser = await User.findOne({ username: 'root' })
+    const loginResponse = await api
+      .post('/api/login')
+      .send({
+        username: 'root',
+        password: 'sekret',
+      })
+    const token = loginResponse.body.token
 
     const newBlog = {
       title: 'Full Stack Web Development',
       author: 'Jerry',
-      userId: defaultUser._id.toString(),
     }
 
     await api
       .post('/api/blogs')
+      .set('Authorization', `bearer ${token}`)
       .send(newBlog)
       .expect(400)
 
@@ -255,6 +279,90 @@ describe('when there is initially one user in db', () => {
       .expect('Content-Type', /application\/json/)
 
     expect(result.body.error).toContain('username must be unique')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toEqual(usersAtStart)
+  })
+
+  // exercise 4.16
+  test('creation fails when username is not given', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      name: 'Matti Luukkainen',
+      password: 'salainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('both username and password must be given')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toEqual(usersAtStart)
+  })
+
+  // exercise 4.16
+  test('creation fails when password is not given', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'mluukkai',
+      name: 'Matti Luukkainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('both username and password must be given')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toEqual(usersAtStart)
+  })
+
+  test('creation fails when username is shorter than 3 characters', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'ml',
+      name: 'Matti Luukkainen',
+      password: 'salainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('both username and password must be at least 3 characters long')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toEqual(usersAtStart)
+  })
+
+  test('creation fails when password is shorter than 3 characters', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'mluukkai',
+      name: 'Matti Luukkainen',
+      password: 'sa',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('both username and password must be at least 3 characters long')
 
     const usersAtEnd = await helper.usersInDb()
     expect(usersAtEnd).toEqual(usersAtStart)
