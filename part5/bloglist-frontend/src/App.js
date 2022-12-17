@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
+import LoginForm from './components/LoginForm'
 import blogService from './services/blogs'
 import loginService from './services/login'
 
 const App = () => {
+  const [loginVisible, setLoginVisible] = useState(false)
   const [blogs, setBlogs] = useState([])
   const [newTitle, setNewTitle] = useState('')
   const [newAuthor, setNewAuthor] = useState('')
@@ -89,29 +91,28 @@ const App = () => {
       })
   }
 
-  const loginForm = () => (
-    <form onSubmit={handleLogin}>
+  const loginForm = () => {
+    const hideWhenVisible = { display: loginVisible ? 'none' : '' }
+    const showWhenVisible = { display: loginVisible ? '' : 'none' }
+
+    return (
       <div>
-        Username:
-        <input
-          type="text"
-          value={username}
-          name="Username"
-          onChange={({ target }) => setUsername(target.value)}
-        />
+        <div style={hideWhenVisible}>
+          <button onClick={() => setLoginVisible(true)}>Login</button>
+        </div>
+        <div style={showWhenVisible}>
+          <LoginForm
+            username={username}
+            password={password}
+            handleUsernameChange={({ target }) => setUsername(target.value)}
+            handlePasswordChange={({ target }) => setPassword(target.value)}
+            handleSubmit={handleLogin}
+          />
+          <button onClick={() => setLoginVisible(false)}>Cancel</button>
+        </div>
       </div>
-      <div>
-        Password:
-        <input
-          type="password"
-          value={password}
-          name="Password"
-          onChange={({ target }) => setPassword(target.value)}
-        />
-      </div>
-      <button type="submit">login</button>
-    </form>
-  )
+    )
+  }
 
   const blogForm = () => (
     <form onSubmit={addBlog}>
