@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const Blog = ({blog, updateBlog, removeBlog}) => {
+const Blog = ({ blog, updateBlog, removeBlog }) => {
   const [detailVisible, setDetailVisible] = useState(false)
 
   const hideWhenVisible = { display: detailVisible ? 'none' : '' }
