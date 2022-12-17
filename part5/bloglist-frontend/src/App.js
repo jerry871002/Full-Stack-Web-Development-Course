@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
 import LoginForm from './components/LoginForm'
+import BlogForm from './components/BlogForm'
+import Togglable from './components/Togglable'
 import blogService from './services/blogs'
 import loginService from './services/login'
 
 const App = () => {
-  const [loginVisible, setLoginVisible] = useState(false)
   const [blogs, setBlogs] = useState([])
   const [newTitle, setNewTitle] = useState('')
   const [newAuthor, setNewAuthor] = useState('')
@@ -92,55 +93,34 @@ const App = () => {
   }
 
   const loginForm = () => {
-    const hideWhenVisible = { display: loginVisible ? 'none' : '' }
-    const showWhenVisible = { display: loginVisible ? '' : 'none' }
-
     return (
-      <div>
-        <div style={hideWhenVisible}>
-          <button onClick={() => setLoginVisible(true)}>Login</button>
-        </div>
-        <div style={showWhenVisible}>
-          <LoginForm
-            username={username}
-            password={password}
-            handleUsernameChange={({ target }) => setUsername(target.value)}
-            handlePasswordChange={({ target }) => setPassword(target.value)}
-            handleSubmit={handleLogin}
-          />
-          <button onClick={() => setLoginVisible(false)}>Cancel</button>
-        </div>
-      </div>
+      <Togglable buttonLabel="Login">
+        <LoginForm
+          username={username}
+          password={password}
+          handleUsernameChange={({ target }) => setUsername(target.value)}
+          handlePasswordChange={({ target }) => setPassword(target.value)}
+          handleSubmit={handleLogin}
+        />
+      </Togglable>
     )
   }
 
-  const blogForm = () => (
-    <form onSubmit={addBlog}>
-      <div>
-        Title:
-        <input
-          value={newTitle}
-          onChange={({ target }) => setNewTitle(target.value)}
+  const blogForm = () => {
+    return (
+      <Togglable buttonLabel="New Blog">
+        <BlogForm
+          title={newTitle}
+          author={newAuthor}
+          url={newUrl}
+          onSubmit={addBlog}
+          handleTitleChange={({ target }) => setNewTitle(target.value)}
+          handleAuthorChange={({ target }) => setNewAuthor(target.value)}
+          handleUrlChange={({ target }) => setNewUrl(target.value)}
         />
-      </div>
-      <div>
-        Author:
-        <input
-          value={newAuthor}
-          onChange={({ target }) => setNewAuthor(target.value)}
-        />
-      </div>
-      <div>
-        URL:
-        <input
-          value={newUrl}
-          onChange={({ target }) => setNewUrl(target.value)}
-        />
-      </div>
-
-      <button type="submit">create</button>
-    </form>
-  )
+      </Togglable>
+    )
+  }
 
   return (
     <div>
