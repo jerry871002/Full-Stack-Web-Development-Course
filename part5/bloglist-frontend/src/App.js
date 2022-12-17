@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
 import LoginForm from './components/LoginForm'
@@ -17,7 +17,9 @@ const App = () => {
 
   useEffect(() => {
     blogService.getAll().then(blogs =>
-      setBlogs(blogs)
+      setBlogs([...blogs].sort((a, b) => {
+        return b.likes - a.likes
+      }))
     )
   }, [])
 
@@ -64,10 +66,36 @@ const App = () => {
   }
 
   const createBlog = (blogObject) => {
+    blogFormRef.current.toggleVisibility()
     blogService
       .create(blogObject)
       .then(retunedBlog => {
-        setBlogs(blogs.concat(retunedBlog))
+        const updatedBlogs = blogs.concat(retunedBlog)
+        setBlogs([...updatedBlogs].sort((a, b) => {
+          return b.likes - a.likes
+        }))
+      })
+  }
+
+  const updateBlog = (id, blogObject) => {
+    blogService
+      .update(id, blogObject)
+      .then(updatedBlog => {
+        const updatedBlogs = blogs.filter(blog => blog.id !== id).concat(updatedBlog)
+        setBlogs([...updatedBlogs].sort((a, b) => {
+          return b.likes - a.likes
+        }))
+      })
+  }
+
+  const removeBlog = (id) => {
+    blogService
+      .remove(id)
+      .then(() => {
+        const updatedBlogs = blogs.filter(blog => blog.id !== id)
+        setBlogs([...updatedBlogs].sort((a, b) => {
+          return b.likes - a.likes
+        }))
       })
   }
 
@@ -85,10 +113,12 @@ const App = () => {
     )
   }
 
+  const blogFormRef = useRef()
+
   const blogForm = () => {
     return (
-      <Togglable buttonLabel="New Blog">
-        <BlogForm 
+      <Togglable buttonLabel="New Blog" ref={blogFormRef}>
+        <BlogForm
           createBlog={createBlog}
           setMessage={setMessage}
           setMessageType={setMessageType}
@@ -101,7 +131,7 @@ const App = () => {
     <div>
       <h1>Blogs</h1>
 
-      <Notification message={message} type={messageType}/>
+      <Notification message={message} type={messageType} />
 
       {user === null ?
         loginForm() :
@@ -113,7 +143,14 @@ const App = () => {
 
       <ul>
         {blogs.map(blog =>
-          <li key={blog.id}><Blog key={blog.id} blog={blog} /></li>
+          <li key={blog.id}>
+            <Blog
+              key={blog.id}
+              blog={blog}
+              updateBlog={updateBlog}
+              removeBlog={removeBlog}
+            />
+          </li>
         )}
       </ul>
     </div>
